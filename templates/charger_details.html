@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ station.station_name }} - Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>{{ station.station_name }}</h2>
+        <p class="text-muted fs-5">📍 {{ station.location }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if user.is_authenticated and user == station.host %}
+            <a href="{% url 'manage_availability' station.id %}" class="btn btn-success me-2">Manage Availability</a>
+        {% endif %}
+        <a href="{% url 'search_chargers' %}" class="btn btn-outline-secondary">Back to Search</a>
+    </div>
+</div>
+<hr>
+
+<div class="row mt-4">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Charger Specifications</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Host:</strong> {{ station.host.username }}</li>
+                    <li class="list-group-item"><strong>Plug Type:</strong> {{ station.plug_type }}</li>
+                    <li class="list-group-item"><strong>Power Output:</strong> {{ station.power_output }} kW</li>
+                    <li class="list-group-item"><strong>Rate:</strong> ₹{{ station.price_per_hour }} per hour</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Available Time Slots</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if available_slots %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in available_slots %}
+                            <tr>
+                                <td>{{ slot.date }}</td>
+                                <td>{{ slot.start_time }} - {{ slot.end_time }}</td>
+                                <td>
+                                    {% if user.is_authenticated and user.userprofile.role == 'Driver' %}
+                                        <a href="{% url 'book_slot' slot.id %}" class="btn btn-sm btn-success">Book Now</a>
+                                    {% elif user.is_authenticated and user.userprofile.role == 'Host' %}
+                                        {% if user == station.host %}
+                                            <span class="badge bg-secondary">Your Station</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border">Host Account</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'login' %}?next={% url 'charger_details' station.id %}" class="btn btn-sm btn-outline-success">Login to Book</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted">
+                    <p>No available slots currently. Please check back later.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

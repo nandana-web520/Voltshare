@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Find Chargers - VoltShare{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="text-success">Find a Charging Station</h2>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-5 bg-light">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="location" class="form-label fw-bold">Location</label>
+                <input type="text" class="form-control" id="location" name="location" placeholder="e.g., Chennai" value="{{ location_query|default:'' }}">
+            </div>
+            <div class="col-md-5">
+                <label for="plug_type" class="form-label fw-bold">Plug Type</label>
+                <select id="plug_type" name="plug_type" class="form-select">
+                    <option value="All">All Types</option>
+                    {% for plug in plug_choices %}
+                        <option value="{{ plug.0 }}" {% if plug_type_query == plug.0 %}selected{% endif %}>{{ plug.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    {% if stations %}
+        {% for station in stations %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">{{ station.station_name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><i class="text-muted">📍 {{ station.location }}</i></p>
+                    <hr>
+                    <p class="mb-1"><strong>Plug Type:</strong> {{ station.plug_type }}</p>
+                    <p class="mb-1"><strong>Power:</strong> {{ station.power_output }} kW</p>
+                    <p class="mb-1"><strong>Price:</strong> ₹{{ station.price_per_hour }}/hr</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{% url 'charger_details' station.id %}" class="btn btn-outline-success w-100">
+                        {% if user.is_authenticated and user.userprofile.role == 'Host' %}View Details{% else %}View Details & Book{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-md-12 text-center text-muted mt-5">
+            <h4>No chargers found matching your search.</h4>
+            <p>Try searching for a different location or plug type.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

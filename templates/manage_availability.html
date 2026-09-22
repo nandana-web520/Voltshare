@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Availability - {{ station.station_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1 text-success fw-bold">Availability: {{ station.station_name }}</h2>
+        <p class="text-muted mb-0">
+            <span class="me-3">📍 {{ station.location }}</span>
+            <span class="me-3">⚡ {{ station.plug_type }}</span>
+            <span class="badge bg-success-subtle text-success fs-6">₹{{ station.price_per_hour }}/hr</span>
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0">
+        {% if past_available_count > 0 %}
+        <a href="{% url 'delete_past_slots' station.id %}" 
+           class="btn btn-outline-danger me-2" 
+           onclick="return confirm('Are you sure you want to delete all {{ past_available_count }} past unbooked availability slot(s)?')">
+            🗑️ Delete Past Slots <span class="badge bg-danger text-white ms-1">{{ past_available_count }}</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'host_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<hr>
+
+{% if past_available_count > 0 and filter_type != 'past' %}
+<div class="alert alert-warning alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+    <div>
+        <strong>Notice:</strong> You have <strong>{{ past_available_count }}</strong> unbooked slot(s) from past dates. You can clean them up to keep your schedule organized.
+    </div>
+    <a href="{% url 'delete_past_slots' station.id %}" 
+       class="btn btn-sm btn-danger ms-3 text-nowrap"
+       onclick="return confirm('Are you sure you want to delete {{ past_available_count }} expired available slot(s)?')">
+        Clear Past Slots Now
+    </a>
+</div>
+{% endif %}
+
+<div class="row mt-3">
+    <!-- Left Column: Add Availability Form -->
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white py-3">
+                <h5 class="mb-0 fw-semibold">⚡ Add Availability</h5>
+                <small class="text-white-50">Generate single or recurring 1-hour slots</small>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="availabilityForm">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <!-- Recurrence Option -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" for="id_recurrence_type">Scheduling Type</label>
+                        {{ form.recurrence_type }}
+                        {% if form.recurrence_type.errors %}
+                            <div class="text-danger small mt-1">{{ form.recurrence_type.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Single Date Picker -->
+                    <div class="mb-3" id="singleDateGroup">
+                        <label class="form-label fw-bold" for="id_single_date">Date</label>
+                        {{ form.single_date }}
+                        {% if form.single_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.single_date.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Date Range (for Daily, Weekdays, Weekends, Specific Days) -->
+                    <div id="dateRangeGroup" style="display: none;">
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label fw-bold" for="id_start_date">Start Date</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                    <div class="text-danger small mt-1">{{ form.start_date.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label fw-bold" for="id_end_date">End Date</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                    <div class="text-danger small mt-1">{{ form.end_date.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Days of Week Selector -->
+                    <div class="mb-3" id="customDaysGroup" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold mb-0">Select Days</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary py-0 px-2" id="btnSelectAllDays">All</button>
+                                <button type="button" class="btn btn-outline-secondary py-0 px-2" id="btnSelectWeekdays">Weekdays</button>
+                                <button type="button" class="btn btn-outline-secondary py-0 px-2" id="btnSelectWeekends">Weekends</button>
+                            </div>
+                        </div>
+                        <div class="p-2 border rounded bg-light">
+                            <div class="d-flex flex-wrap gap-2 justify-content-between">
+                                {% for choice in form.days_of_week %}
+                                <div class="form-check form-check-inline m-0">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label small fw-semibold" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% if form.days_of_week.errors %}
+                            <div class="text-danger small mt-1">{{ form.days_of_week.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Time Range -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold" for="id_start_time">Start Time</label>
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                                <div class="text-danger small mt-1">{{ form.start_time.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-bold" for="id_end_time">End Time</label>
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                                <div class="text-danger small mt-1">{{ form.end_time.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border py-2 mb-3 small text-muted">
+                        💡 Slots are automatically partitioned into <strong>1-hour booking blocks</strong> between start and end times. Existing slots will not be duplicated.
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+                        + Generate Availability Slots
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Existing Slots List -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center py-2">
+                <h5 class="mb-0 fw-bold">Existing Slots</h5>
+                
+                <!-- Filter Tabs -->
+                <div class="btn-group btn-group-sm my-1" role="group">
+                    <a href="?filter=upcoming" class="btn {% if filter_type == 'upcoming' %}btn-success text-white{% else %}btn-outline-secondary{% endif %}">
+                        Upcoming ({{ upcoming_count }})
+                    </a>
+                    <a href="?filter=past" class="btn {% if filter_type == 'past' %}btn-success text-white{% else %}btn-outline-secondary{% endif %}">
+                        Past ({{ past_total_count }})
+                    </a>
+                    <a href="?filter=all" class="btn {% if filter_type == 'all' %}btn-success text-white{% else %}btn-outline-secondary{% endif %}">
+                        All ({{ total_count }})
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                {% if slots %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in slots %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    {{ slot.date|date:"M. d, Y" }}
+                                    <span class="text-muted small">({{ slot.date|date:"D" }})</span>
+                                </td>
+                                <td>{{ slot.start_time|time:"g:i a" }} – {{ slot.end_time|time:"g:i a" }}</td>
+                                <td>
+                                    {% if slot.status == 'Available' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Available</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Booked</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if slot.status == 'Available' %}
+                                        <a href="{% url 'delete_slot' slot.id %}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Delete this slot?')">
+                                            Delete
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete a booked slot">Locked</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center text-muted">
+                    <p class="fs-5 mb-1">No availability slots found for this filter.</p>
+                    <p class="small">Use the form on the left to add upcoming slots for drivers to book.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if past_available_count > 0 %}
+            <div class="card-footer bg-light text-end py-2">
+                <span class="text-muted small me-2">{{ past_available_count }} expired unbooked slot(s) can be removed:</span>
+                <a href="{% url 'delete_past_slots' station.id %}" 
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Are you sure you want to delete all {{ past_available_count }} past unbooked availability slot(s)?')">
+                    🗑️ Delete All Past Slots
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const recurrenceSelect = document.getElementById('id_recurrence_type');
+        const singleDateGroup = document.getElementById('singleDateGroup');
+        const dateRangeGroup = document.getElementById('dateRangeGroup');
+        const customDaysGroup = document.getElementById('customDaysGroup');
+
+        function updateFormVisibility() {
+            const val = recurrenceSelect.value;
+            if (val === 'single') {
+                singleDateGroup.style.display = 'block';
+                dateRangeGroup.style.display = 'none';
+                customDaysGroup.style.display = 'none';
+            } else if (val === 'custom') {
+                singleDateGroup.style.display = 'none';
+                dateRangeGroup.style.display = 'block';
+                customDaysGroup.style.display = 'block';
+            } else {
+                // daily, weekdays, weekends
+                singleDateGroup.style.display = 'none';
+                dateRangeGroup.style.display = 'block';
+                customDaysGroup.style.display = 'none';
+            }
+        }
+
+        recurrenceSelect.addEventListener('change', updateFormVisibility);
+        updateFormVisibility();
+
+        // Helper buttons for day selection
+        const dayCheckboxes = document.querySelectorAll('#customDaysGroup input[type="checkbox"]');
+        const btnSelectAll = document.getElementById('btnSelectAllDays');
+        const btnSelectWeekdays = document.getElementById('btnSelectWeekdays');
+        const btnSelectWeekends = document.getElementById('btnSelectWeekends');
+
+        if (btnSelectAll) {
+            btnSelectAll.addEventListener('click', function() {
+                dayCheckboxes.forEach(cb => cb.checked = true);
+            });
+        }
+
+        if (btnSelectWeekdays) {
+            btnSelectWeekdays.addEventListener('click', function() {
+                // Mon to Fri values: '0', '1', '2', '3', '4'
+                dayCheckboxes.forEach(cb => {
+                    const v = parseInt(cb.value);
+                    cb.checked = (v >= 0 && v <= 4);
+                });
+            });
+        }
+
+        if (btnSelectWeekends) {
+            btnSelectWeekends.addEventListener('click', function() {
+                // Sat and Sun values: '5', '6'
+                dayCheckboxes.forEach(cb => {
+                    const v = parseInt(cb.value);
+                    cb.checked = (v === 5 || v === 6);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

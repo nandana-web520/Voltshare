@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Host Dashboard - VoltShare{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>My Charging Stations</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'add_station' %}" class="btn btn-success">+ Add New Station</a>
+    </div>
+</div>
+<hr>
+
+<div class="row mt-4">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow bg-success text-white">
+            <div class="card-body">
+                <h4 class="mb-0">Expected Revenue: ₹{{ expected_revenue }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Upcoming Bookings</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_bookings %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Driver</th>
+                                <th>Station</th>
+                                <th>Date & Time</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in upcoming_bookings %}
+                            <tr>
+                                <td>{{ booking.driver.username }}</td>
+                                <td>{{ booking.charging_station.station_name }}</td>
+                                <td>{{ booking.availability_slot.date }} ({{ booking.availability_slot.start_time }} - {{ booking.availability_slot.end_time }})</td>
+                                <td class="text-success fw-bold">+₹{{ booking.total_cost }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-3 text-muted">No upcoming bookings.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2">
+    {% if stations %}
+        {% for station in stations %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 text-success">{{ station.station_name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Location:</strong> {{ station.location }}</p>
+                    <p><strong>Plug Type:</strong> {{ station.plug_type }}</p>
+                    <p><strong>Power:</strong> {{ station.power_output }} kW</p>
+                    <p><strong>Price:</strong> ₹{{ station.price_per_hour }} / hour</p>
+                    
+                    <!-- Manage Availability Link -->
+                    <a href="{% url 'manage_availability' station.id %}" class="btn btn-sm btn-outline-success mt-2">Manage Availability</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                You haven't added any charging stations yet. Click the "Add New Station" button to get started!
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

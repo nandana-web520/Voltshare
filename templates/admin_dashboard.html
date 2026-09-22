@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - VoltShare{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="text-success fw-bold mb-1">🛡️ VoltShare Admin Dashboard</h2>
+        <p class="text-muted mb-0">Platform overview, system health, and management console</p>
+    </div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        {% if past_available_slots_count > 0 %}
+        <a href="{% url 'admin_cleanup_past_slots' %}" 
+           class="btn btn-outline-danger" 
+           onclick="return confirm('Clean up all {{ past_available_slots_count }} expired slots across the network?')">
+            🗑️ Clear Expired Slots <span class="badge bg-danger ms-1">{{ past_available_slots_count }}</span>
+        </a>
+        {% endif %}
+        <a href="/admin/" target="_blank" class="btn btn-outline-dark">
+            ⚙️ Django Admin
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-semibold">Platform Revenue</div>
+                        <h3 class="fw-bold mb-0 mt-2">₹{{ total_revenue }}</h3>
+                    </div>
+                    <span class="fs-3">💰</span>
+                </div>
+                <div class="small text-white-50 mt-2">From confirmed bookings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Charging Stations</div>
+                        <h3 class="fw-bold text-success mb-0 mt-2">{{ total_stations_count }}</h3>
+                    </div>
+                    <span class="fs-3">⚡</span>
+                </div>
+                <div class="small text-muted mt-2">{{ total_slots_count }} total availability slots</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Bookings</div>
+                        <h3 class="fw-bold text-success mb-0 mt-2">{{ total_bookings_count }}</h3>
+                    </div>
+                    <span class="fs-3">📅</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    <span class="text-success fw-bold">{{ confirmed_bookings_count }}</span> confirmed · 
+                    <span class="text-danger">{{ cancelled_bookings_count }}</span> cancelled
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Registered Users</div>
+                        <h3 class="fw-bold text-success mb-0 mt-2">{{ total_users_count }}</h3>
+                    </div>
+                    <span class="fs-3">👥</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    <span>{{ host_count }} Hosts</span> · 
+                    <span>{{ driver_count }} Drivers</span> · 
+                    <span>{{ admin_count }} Admins</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Management Tabs -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom p-0">
+        <ul class="nav nav-tabs card-header-tabs m-0 px-3 pt-2" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'stations' %}active fw-bold text-success{% else %}text-secondary{% endif %}" 
+                        id="stations-tab" data-bs-toggle="tab" data-bs-target="#stations" type="button" role="tab">
+                    ⚡ Stations ({{ total_stations_count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'bookings' %}active fw-bold text-success{% else %}text-secondary{% endif %}" 
+                        id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">
+                    📋 Bookings ({{ total_bookings_count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'users' %}active fw-bold text-success{% else %}text-secondary{% endif %}" 
+                        id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                    👥 Users ({{ total_users_count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if active_tab == 'tools' %}active fw-bold text-success{% else %}text-secondary{% endif %}" 
+                        id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools" type="button" role="tab">
+                    🛠️ Maintenance & Tools
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="tab-content" id="adminTabsContent">
+            <!-- Stations Tab -->
+            <div class="tab-pane fade {% if active_tab == 'stations' %}show active{% endif %}" id="stations" role="tabpanel">
+                {% if stations %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Station Name</th>
+                                <th>Host</th>
+                                <th>Location</th>
+                                <th>Plug Type</th>
+                                <th>Power</th>
+                                <th>Rate</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for station in stations %}
+                            <tr>
+                                <td class="text-muted small">#{{ station.id }}</td>
+                                <td class="fw-semibold">{{ station.station_name }}</td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ station.host.username }}</span>
+                                </td>
+                                <td>{{ station.location }}</td>
+                                <td><span class="badge bg-info-subtle text-info">{{ station.plug_type }}</span></td>
+                                <td>{{ station.power_output }} kW</td>
+                                <td class="fw-bold text-success">₹{{ station.price_per_hour }}/hr</td>
+                                <td class="text-end">
+                                    <a href="{% url 'charger_details' station.id %}" class="btn btn-sm btn-outline-success">View</a>
+                                    <a href="{% url 'manage_availability' station.id %}" class="btn btn-sm btn-outline-primary">Slots</a>
+                                    <a href="{% url 'admin_delete_station' station.id %}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Are you sure you want to delete station \'{{ station.station_name }}\'? This cannot be undone.')">
+                                        Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center text-muted">No charging stations registered yet.</div>
+                {% endif %}
+            </div>
+
+            <!-- Bookings Tab -->
+            <div class="tab-pane fade {% if active_tab == 'bookings' %}show active{% endif %}" id="bookings" role="tabpanel">
+                {% if bookings %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Driver</th>
+                                <th>Station</th>
+                                <th>Host</th>
+                                <th>Slot Date & Time</th>
+                                <th>Total Cost</th>
+                                <th>Status</th>
+                                <th>Booked At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr>
+                                <td class="fw-semibold">#{{ b.id }}</td>
+                                <td><strong>{{ b.driver.username }}</strong></td>
+                                <td>{{ b.charging_station.station_name }}</td>
+                                <td>{{ b.charging_station.host.username }}</td>
+                                <td>
+                                    {{ b.availability_slot.date|date:"M. d, Y" }}
+                                    <span class="text-muted small">({{ b.availability_slot.start_time|time:"g:i A" }} - {{ b.availability_slot.end_time|time:"g:i A" }})</span>
+                                </td>
+                                <td class="fw-bold text-success">₹{{ b.total_cost }}</td>
+                                <td>
+                                    {% if b.status == 'Confirmed' %}
+                                        <span class="badge bg-success">Confirmed</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ b.booking_time|date:"M. d, Y H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center text-muted">No bookings recorded yet.</div>
+                {% endif %}
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-pane fade {% if active_tab == 'users' %}show active{% endif %}" id="users" role="tabpanel">
+                {% if users %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Privileges</th>
+                                <th>Date Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="text-muted small">#{{ u.id }}</td>
+                                <td class="fw-semibold">{{ u.username }}</td>
+                                <td>{{ u.email|default:"–" }}</td>
+                                <td>
+                                    {% if u.userprofile.role == 'Host' %}
+                                        <span class="badge bg-success-subtle text-success">Host</span>
+                                    {% elif u.userprofile.role == 'Driver' %}
+                                        <span class="badge bg-primary-subtle text-primary">Driver</span>
+                                    {% elif u.userprofile.role == 'Admin' %}
+                                        <span class="badge bg-dark-subtle text-dark">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary">General</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.is_superuser %}
+                                        <span class="badge bg-danger">Superuser</span>
+                                    {% elif u.is_staff %}
+                                        <span class="badge bg-warning text-dark">Staff</span>
+                                    {% else %}
+                                        <span class="text-muted small">Standard</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ u.date_joined|date:"M. d, Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center text-muted">No users found.</div>
+                {% endif %}
+            </div>
+
+            <!-- Maintenance & Tools Tab -->
+            <div class="tab-pane fade {% if active_tab == 'tools' %}show active{% endif %}" id="tools" role="tabpanel">
+                <div class="p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 bg-light">
+                                <h5 class="fw-bold">🧹 Expired Availability Slot Cleanup</h5>
+                                <p class="text-muted small mb-3">
+                                    Purges all past unbooked availability slots across every station on the platform. Booked slots are always preserved.
+                                </p>
+                                <p class="small mb-3">
+                                    Currently <strong>{{ past_available_slots_count }}</strong> expired available slot(s) pending cleanup.
+                                </p>
+                                <a href="{% url 'admin_cleanup_past_slots' %}" 
+                                   class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('Are you sure you want to clean up all expired slots across the network?')">
+                                    Run Global Slot Cleanup
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 bg-light">
+                                <h5 class="fw-bold">⚙️ Django Core Admin</h5>
+                                <p class="text-muted small mb-3">
+                                    Access Django's built-in administration site to manage low-level model data, auth permissions, and database records.
+                                </p>
+                                <a href="/admin/" target="_blank" class="btn btn-dark btn-sm">
+                                    Open Django Admin &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

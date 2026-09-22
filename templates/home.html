@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row text-center mt-5">
+    <div class="col-md-12">
+        <h1 class="display-4 text-success font-weight-bold">VoltShare</h1>
+        <p class="lead">Smart EV Charging & Grid Management Platform</p>
+        <p>Find, share and book EV charging stations through a community-powered charging network.</p>
+        <hr class="my-4">
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% if not user.is_authenticated %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">For Hosts</h5>
+                    <p class="card-text">Own an EV charger? Share it with the community and earn revenue.</p>
+                    <a href="{% url 'register' %}?role=Host" class="btn btn-outline-success">Register as Host</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">For Drivers</h5>
+                    <p class="card-text">Need a charge? Find available chargers near you and book a slot.</p>
+                    <a href="{% url 'search_chargers' %}" class="btn btn-success">Find a Charger</a>
+                </div>
+            </div>
+        </div>
+    {% elif user.is_staff or user.is_superuser or user.userprofile.role == 'Admin' %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">🛡️ Admin Control Center</h5>
+                    <p class="card-text">Monitor system-wide metrics, manage all charging stations, inspect booking records, and oversee users.</p>
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-success">Go to Admin Dashboard</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">⚙️ Database Administration</h5>
+                    <p class="card-text">Directly inspect and modify core database models, user accounts, and authentication records.</p>
+                    <a href="/admin/" target="_blank" class="btn btn-outline-dark">Open Django Admin</a>
+                </div>
+            </div>
+        </div>
+    {% elif user.userprofile.role == 'Host' %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Host Dashboard</h5>
+                    <p class="card-text">Manage your charging stations, configure daily/custom availability slots, and monitor expected revenue.</p>
+                    <a href="{% url 'host_dashboard' %}" class="btn btn-success">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Add Charging Station</h5>
+                    <p class="card-text">Register a new EV charging station at your location with custom pricing and plug types.</p>
+                    <a href="{% url 'add_station' %}" class="btn btn-outline-success">+ Add New Station</a>
+                </div>
+            </div>
+        </div>
+    {% elif user.userprofile.role == 'Driver' %}
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Find EV Chargers</h5>
+                    <p class="card-text">Need a charge? Search nearby charging stations by location and book an open slot.</p>
+                    <a href="{% url 'search_chargers' %}" class="btn btn-success">Find a Charger</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">My Bookings</h5>
+                    <p class="card-text">Track your upcoming reservations, charging times, and booking history.</p>
+                    <a href="{% url 'driver_dashboard' %}" class="btn btn-outline-success">View My Bookings</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="row mt-5 text-center">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-0 bg-success text-white py-3">
+            <h3>{{ total_chargers }}</h3>
+            <p class="mb-0">Active Chargers</p>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-0 bg-success text-white py-3">
+            <h3>{{ total_bookings }}</h3>
+            <p class="mb-0">Successful Bookings</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}
